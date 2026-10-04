@@ -1,0 +1,8 @@
+{
+  "id": "bwmusic",
+  "name": "B&W Music",
+  "version": "0.01",
+  "type": "app",
+  "supports": ["BANGLEJS2"],
+  "storage": [{ "name": "bwmusic.app.js", "url": "app.js" }]
+}

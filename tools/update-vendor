@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// Refresh the vendored emulator (tools/emu/) and Bangle.js types (types/vendor/)
+// from pinned upstream commits.
+//
+// Usage: tools/update-vendor [--webide <sha>] [--bangleapps <sha>]
+// Without arguments it re-fetches the commits recorded in the VERSION files.
+"use strict";
+const fs = require("fs");
+const path = require("path");
+
+const root = path.join(__dirname, "..");
+const emuDir = path.join(root, "tools", "emu");
+const typesDir = path.join(root, "types", "vendor");
+const emuFiles = ["emulator_banglejs2.js", "emu_banglejs2.js", "common.js"];
+
+function readPin(file, key) {
+  const text = fs.readFileSync(file, "utf8");
+  const m = text.match(new RegExp("^" + key + "=(\\w+)", "m"));
+  if (!m) throw new Error("No " + key + " in " + file);
+  return m[1];
+}
+
+function arg(name) {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+async function fetchText(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(res.status + " " + url);
+  return res.text();
+}
+
+async function main() {
+  const webide = arg("--webide") || readPin(path.join(emuDir, "VERSION"), "EspruinoWebIDE");
+  const bangleapps = arg("--bangleapps") || readPin(path.join(typesDir, "VERSION"), "BangleApps");
+
+  for (const f of emuFiles) {
+    const url = "https://raw.githubusercontent.com/espruino/EspruinoWebIDE/" + webide + "/emu/" + f;
+    fs.writeFileSync(path.join(emuDir, f), await fetchText(url));
+    console.log("emu  ", f);
+  }
+  fs.writeFileSync(
+    path.join(emuDir, "VERSION"),
+    "EspruinoWebIDE=" + webide + "\n# https://github.com/espruino/EspruinoWebIDE/tree/" + webide + "/emu\n",
+  );
+
+  const listUrl = "https://api.github.com/repos/espruino/BangleApps/contents/typescript/types?ref=" + bangleapps;
+  const list = JSON.parse(await fetchText(listUrl));
+  fs.mkdirSync(typesDir, { recursive: true });
+  for (const entry of list) {
+    if (!entry.name.endsWith(".d.ts")) continue;
+    const url = "https://raw.githubusercontent.com/espruino/BangleApps/" + bangleapps + "/typescript/types/" + entry.name;
+    fs.writeFileSync(path.join(typesDir, entry.name), await fetchText(url));
+    console.log("types", entry.name);
+  }
+  fs.writeFileSync(
+    path.join(typesDir, "VERSION"),
+    "BangleApps=" + bangleapps + "\n# https://github.com/espruino/BangleApps/tree/" + bangleapps + "/typescript/types\n",
+  );
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

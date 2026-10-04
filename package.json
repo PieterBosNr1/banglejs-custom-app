@@ -1,16 +1,22 @@
 {
   "name": "banglejs-custom-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "B&W Music: a black-and-white Gadgetbridge music remote for Bangle.js 2",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "typecheck": "tsc -p .",
+    "lint": "eslint apps",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "update-vendor": "node tools/update-vendor"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "devDependencies": {
-    "@ai-hero/sandcastle": "^0.12.0"
-  }
+    "@ai-hero/sandcastle": "^0.12.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-es-x": "^10.0.1",
+    "typescript": "7.0.2"
+  },
+  "private": true
 }

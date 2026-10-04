@@ -23,21 +23,21 @@ Work on issues in this order:
 3. **Polish** — improving existing functionality (error messages, UX, docs)
 4. **Refactors** — internal cleanups with no user-visible change
 
-Pick the highest-priority open issue that is not blocked by another open issue.
+Pick the highest-priority open issue that is not blocked by another open issue. If an issue body has a `**Blocked by:**` line, skip that issue while any issue listed there is still open (check with `gh issue view <N> --json state`).
 
 ## Workflow
 
 1. **Explore** — read the issue carefully. Pull in the parent PRD if referenced. Read the relevant source files and tests before writing any code.
 2. **Plan** — decide what to change and why. Keep the change as small as possible.
 3. **Execute** — use RGR (Red → Green → Repeat → Refactor): write a failing test first, then write the implementation to pass it.
-4. **Verify** — run `npm run typecheck` and `npm run test` before committing. Fix any failures before proceeding.
+4. **Verify** — run `pnpm typecheck && pnpm lint && pnpm test` before committing (if `pnpm` is not on PATH, use `npx --yes pnpm@10` in its place). Fix any failures before proceeding.
 5. **Commit** — make a single git commit. The message MUST:
    - Start with `RALPH:` prefix
    - Include the task completed and any PRD reference
    - List key decisions made
    - List files changed
    - Note any blockers for the next iteration
-6. **Close** — close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
+6. **Close** — close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done. If the issue has a `## Device check` section, also run `gh issue edit <ID> --add-label device-check` so a human runs the check on the watch.
 
 ## Rules
 
