@@ -25,8 +25,12 @@ test("pnpm flash --dry-run writes every storage file and loads the app", { timeo
   });
 
   assert.ok(
-    lines.some((l) => l.startsWith('require("Storage").write("bwmusic.app.js",') && l.includes("Hello")),
+    lines.some((l) => l.startsWith('require("Storage").write("bwmusic.app.js",') && l.includes("No music")),
     "writes bwmusic.app.js with the app code",
+  );
+  assert.ok(
+    lines.some((l) => l.startsWith('require("Storage").write("bwmusic",')),
+    "writes the bwmusic lib module",
   );
   assert.equal(lines.at(-1), 'load("bwmusic.app.js")');
 });

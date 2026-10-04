@@ -173,6 +173,14 @@ function boot() {
       },
 
       /**
+       * Rebuild `.boot0` so `*.boot.js` files written since the last reset run
+       * on every following `load()`, as the App Loader does after an install.
+       */
+      async rebuildBoot() {
+        await emu.load("bootupdate.js", 1500);
+      },
+
+      /**
        * Call `GB(obj)` as Gadgetbridge would. A no-op `GB` is defined when no
        * app provides one (bare firmware has none).
        * @param {object} obj

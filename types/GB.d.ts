@@ -9,3 +9,6 @@ type GBEvent = { t: string; [key: string]: unknown };
  * app's boot code; apps wrap it to intercept events and must pass others on.
  */
 declare var GB: ((event: GBEvent) => void) | undefined;
+
+/** The running bwmusic app's state; set by app.js. */
+declare var bwmusic: { m: import("../apps/bwmusic/lib").Model; title: string[]; draws: number } | undefined;

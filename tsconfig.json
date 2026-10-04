@@ -14,7 +14,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": { "bwmusic": ["./apps/bwmusic/lib.js"] }
   },
   "include": ["types/**/*.d.ts", "apps/**/*.js"]
 }
