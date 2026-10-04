@@ -89,13 +89,27 @@ for (const [x, y, cmd] of [
   });
 }
 
-for (const [lr, cmd] of [
-  [-1, "next"],
-  [1, "previous"],
-  [0, ""],
+for (const [lr, ud, cmd] of [
+  [-1, 0, "next"],
+  [1, 0, "previous"],
+  [0, -1, "volumeup"],
+  [0, 1, "volumedown"],
+  [0, 0, ""],
 ]) {
-  test(`swipe lr=${lr} -> ${JSON.stringify(cmd)}`, () => {
-    assert.equal(lib.swipeCommand(lr), cmd);
+  test(`swipe lr=${lr} ud=${ud} -> ${JSON.stringify(cmd)}`, () => {
+    assert.equal(lib.swipeCommand(lr, ud), cmd);
+  });
+}
+
+for (const [vol, cmd, text] of [
+  [undefined, "volumeup", "Vol +"],
+  [undefined, "volumedown", "Vol -"],
+  [50, "volumeup", "Vol 50"],
+  [42.6, "volumedown", "Vol 43"],
+  [0, "volumedown", "Vol 0"],
+]) {
+  test(`volume overlay for vol=${vol} after ${cmd} -> ${JSON.stringify(text)}`, () => {
+    assert.equal(lib.volText(vol, cmd), text);
   });
 }
 

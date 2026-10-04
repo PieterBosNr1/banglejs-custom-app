@@ -189,3 +189,36 @@ test("the middle button shows pause while playing", async () => {
   assert.notEqual(playing, paused, "icon changes with Playback state");
   emu.screenshot("app-controls-playing");
 });
+
+test("swipe up sends volumeup, swipe down sends volumedown", async () => {
+  await startStubbed();
+  await emu.swipe("up");
+  await emu.swipe("down");
+  assert.deepEqual(emu.errors(), []);
+  assert.deepEqual(emu.eval("sent"), ["volumeup", "volumedown"]);
+});
+
+test("a volume swipe shows an overlay that is gone after the timeout", async () => {
+  await startStubbed();
+  await emu.gb(INFO);
+  const before = emu.pixels();
+  await emu.swipe("up");
+  assert.equal(emu.eval("bwmusic.overlay"), "Vol +");
+  assert.notDeepEqual(emu.pixels(), before, "overlay drawn");
+  emu.screenshot("app-volume-overlay");
+  await emu.wait(1600);
+  assert.deepEqual(emu.errors(), []);
+  assert.equal(emu.eval("bwmusic.overlay"), "");
+  assert.deepEqual(emu.pixels(), before, "overlay cleared");
+});
+
+test("the overlay shows the known volume and follows audio events", async () => {
+  await startStubbed();
+  await emu.gb({ t: "audio", v: 40 });
+  await emu.swipe("up");
+  assert.equal(emu.eval("bwmusic.overlay"), "Vol 40");
+  await emu.gb({ t: "audio", v: 47 });
+  assert.equal(emu.eval("bwmusic.overlay"), "Vol 47");
+  assert.deepEqual(emu.errors(), []);
+  assert.ok(emu.console().includes("bwmusic audio.v 47"), "raw audio.v logged");
+});

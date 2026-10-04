@@ -12,12 +12,14 @@
 
   // App state, global so the boot hook and tests can reach it.
   // m: model from lib.js; title: title lines last drawn; draws: redraw count;
-  // auto: Auto-opened; onEvent: set below, called by boot.js for music events.
+  // auto: Auto-opened; overlay: volume overlay text ("" when hidden);
+  // onEvent: set below, called by boot.js for music events.
   const app = {
     m: handoff ? { track: handoff.track, state: handoff.state, vol: undefined } : lib.initial(),
     title: /** @type {string[]} */ ([]),
     draws: 0,
     auto: !!handoff,
+    overlay: "",
     onEvent: function (/** @type {GBEvent} */ _e) {},
   };
   global.bwmusic = app;
@@ -105,11 +107,43 @@
     }
   };
 
+  // Volume overlay: a box over the text block for OVERLAY_MS after a volume swipe.
+  const OVERLAY_MS = 1500;
+  /** @type {TimeoutId|undefined} */
+  let overlayTimer;
+  /** Last volume command, so the overlay can fall back to its direction. */
+  let volCmd = "";
+  const drawOverlay = function () {
+    const r = Bangle.appRect;
+    const cx = r.x + (r.w >> 1);
+    const cy = r.y + 40;
+    g.reset().setColor(g.theme.fg).setBgColor(g.theme.bg);
+    g.clearRect(r.x + 20, cy - 20, r.x2 - 20, cy + 20).drawRect(r.x + 20, cy - 20, r.x2 - 20, cy + 20);
+    g.setFontAlign(0, 0).setFont12x20().drawString(app.overlay, cx, cy + 1);
+  };
+  const showOverlay = function (/** @type {string} */ c) {
+    volCmd = c;
+    app.overlay = lib.volText(app.m.vol, c);
+    drawOverlay();
+    if (overlayTimer) clearTimeout(overlayTimer);
+    overlayTimer = setTimeout(function () {
+      overlayTimer = undefined;
+      app.overlay = "";
+      draw();
+    }, OVERLAY_MS);
+  };
+
   app.onEvent = function (e) {
+    // Raw value logged so the volume scale can be confirmed on the device.
+    if (e.t === "audio") console.log("bwmusic audio.v", e.v);
     const m = lib.reduce(app.m, e);
     if (m === app.m) return;
     app.m = m;
     if (e.t !== "audio") draw();
+    if (app.overlay) {
+      app.overlay = lib.volText(app.m.vol, volCmd);
+      drawOverlay();
+    }
   };
 
   /** Send a command to the phone's player; Bangle.musicControl comes from the android app. */
@@ -145,12 +179,15 @@
     touch: function (_b, xy) {
       if (xy) send(lib.tapCommand(xy.x, xy.y, Bangle.appRect));
     },
-    swipe: function (lr) {
-      send(lib.swipeCommand(lr));
+    swipe: function (lr, ud) {
+      const c = lib.swipeCommand(lr, ud || 0);
+      send(c);
+      if (c === "volumeup" || c === "volumedown") showOverlay(c);
     },
     remove: function () {
       clearWatch(btnWatch);
       if (hold) clearTimeout(hold);
+      if (overlayTimer) clearTimeout(overlayTimer);
     },
   });
   g.clear();

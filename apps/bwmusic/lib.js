@@ -128,9 +128,22 @@ exports.tapCommand = function (x, y, r) {
 };
 
 /**
- * Music command for a horizontal swipe (-1 = left, 1 = right).
+ * Music command for a swipe: left/right (lr -1/1) skip, up/down (ud -1/1) change volume.
  * @param {number} lr
+ * @param {number} ud
  */
-exports.swipeCommand = function (lr) {
-  return lr < 0 ? "next" : lr > 0 ? "previous" : "";
+exports.swipeCommand = function (lr, ud) {
+  if (lr) return lr < 0 ? "next" : "previous";
+  return ud < 0 ? "volumeup" : ud > 0 ? "volumedown" : "";
+};
+
+/**
+ * Volume overlay text: the known volume, else the direction of command `c`.
+ * The fonts lack a minus sign, so down is "-".
+ * @param {number|undefined} vol
+ * @param {string} c "volumeup" or "volumedown"
+ */
+exports.volText = function (vol, c) {
+  if (typeof vol === "number") return "Vol " + Math.round(vol);
+  return c === "volumeup" ? "Vol +" : "Vol -";
 };
