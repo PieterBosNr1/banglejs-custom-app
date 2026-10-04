@@ -38,7 +38,7 @@ await run({
       // onSandboxReady runs once after the sandbox is initialised and the repo is
       // synced in, before the agent starts. The repo uses pnpm; npm cannot read
       // a pnpm node_modules tree, so install fresh with pnpm inside the sandbox.
-      onSandboxReady: [{ command: "npx --yes pnpm@10 install --frozen-lockfile" }],
+      onSandboxReady: [{ command: "npx --yes pnpm@10 install --frozen-lockfile --config.confirm-modules-purge=false" }],
     },
   },
 });
