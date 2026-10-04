@@ -6,6 +6,7 @@
     "typecheck": "tsc -p .",
     "lint": "eslint apps",
     "test": "node --test \"test/**/*.test.mjs\"",
+    "flash": "node tools/deploy.mjs",
     "update-vendor": "node tools/update-vendor"
   },
   "keywords": [],
