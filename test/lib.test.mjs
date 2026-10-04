@@ -98,3 +98,63 @@ for (const [lr, cmd] of [
     assert.equal(lib.swipeCommand(lr), cmd);
   });
 }
+
+const PLAYING = lib.reduce(lib.reduce(lib.initial(), INFO), { t: "musicstate", state: "play" });
+
+test("auto-opens when playing a known Track on the clock", () => {
+  assert.equal(lib.shouldOpen(PLAYING, false, true), true);
+});
+
+test("does not auto-open off the clock, when Dismissed, paused or without a Track", () => {
+  assert.equal(lib.shouldOpen(PLAYING, false, false), false);
+  assert.equal(lib.shouldOpen(PLAYING, true, true), false);
+  assert.equal(lib.shouldOpen(lib.reduce(PLAYING, { t: "musicstate", state: "pause" }), false, true), false);
+  assert.equal(lib.shouldOpen(lib.reduce(lib.initial(), { t: "musicstate", state: "play" }), false, true), false);
+  const empty = lib.reduce(PLAYING, { t: "musicinfo", artist: "", album: "", track: "", dur: 0 });
+  assert.equal(lib.shouldOpen(empty, false, true), false);
+});
+
+test("pause or stop re-arms a Dismissed app; play and unknown do not", () => {
+  assert.equal(lib.rearm(true, "pause"), false);
+  assert.equal(lib.rearm(true, "stop"), false);
+  assert.equal(lib.rearm(true, "play"), true);
+  assert.equal(lib.rearm(true, ""), true);
+  assert.equal(lib.rearm(false, "play"), false);
+});
+
+test("sameTrack compares every field", () => {
+  const t = PLAYING.track;
+  assert.equal(lib.sameTrack(t, { ...t }), true);
+  assert.equal(lib.sameTrack(t, { ...t, dur: 1 }), false);
+  assert.equal(lib.sameTrack(t, undefined), false);
+  assert.equal(lib.sameTrack(undefined, undefined), true);
+});
+
+function fakeStorage(files) {
+  const writes = [];
+  return {
+    writes,
+    readJSON: (n) => (n in files ? structuredClone(files[n]) : undefined),
+    writeJSON: (n, v) => {
+      files[n] = v;
+      writes.push(n);
+    },
+  };
+}
+
+test("save writes the Dismissed flag and Track only when they change", () => {
+  const S = fakeStorage({});
+  lib.save(S, true, PLAYING.track);
+  assert.deepEqual(S.readJSON("bwmusic.json"), { dismissed: true, track: PLAYING.track });
+  lib.save(S, true, { ...PLAYING.track });
+  assert.equal(S.writes.length, 1, "unchanged: no write");
+  lib.save(S, false, PLAYING.track);
+  lib.save(S, false, { ...PLAYING.track, track: "Aerodynamic" });
+  assert.equal(S.writes.length, 3);
+});
+
+test("save treats a missing file as not Dismissed and no Track", () => {
+  const S = fakeStorage({});
+  lib.save(S, false, undefined);
+  assert.equal(S.writes.length, 0);
+});

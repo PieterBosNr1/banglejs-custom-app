@@ -20,8 +20,10 @@ before(async () => {
 after(() => emu.stop());
 beforeEach(() => emu.reset());
 
+// Installs like the App Loader: boot.js routes GB events to the app.
 async function startApp() {
   for (const f of METADATA.storage) emu.writeFile(f.name, read(f.url));
+  await emu.rebuildBoot();
   await emu.load("bwmusic.app.js");
 }
 
@@ -84,7 +86,6 @@ test("musicinfo + musicstate update the model and the screen", async () => {
 test("other GB events are passed on to the previous handler", async () => {
   // Stands in for android.boot.js, which defines GB on every load().
   emu.writeFile("fakegb.boot.js", "global.GB=function(e){global.passed=(global.passed||[]).concat([e.t]);};");
-  await emu.rebuildBoot();
   await startApp();
   await emu.gb({ t: "notify", id: 1, body: "hi" });
   await emu.gb({ t: "audio", v: 50 });

@@ -177,7 +177,14 @@ function boot() {
        * on every following `load()`, as the App Loader does after an install.
        */
       async rebuildBoot() {
+        const start = lines.length;
         await emu.load("bootupdate.js", 1500);
+        // bootupdate.js evals the fresh .boot0 in its own context; a boot file's
+        // setTimeout callback then fails once with this error. The next load()
+        // runs the same code cleanly, so drop it to keep errors() meaningful.
+        for (let i = lines.length - 1; i >= start; i--) {
+          if (lines[i] === "Uncaught Error: Function code is null, not a string") lines.splice(i, 1);
+        }
       },
 
       /**

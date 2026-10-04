@@ -6,6 +6,8 @@
   "supports": ["BANGLEJS2"],
   "storage": [
     { "name": "bwmusic.app.js", "url": "app.js" },
-    { "name": "bwmusic", "url": "lib.js" }
-  ]
+    { "name": "bwmusic", "url": "lib.js" },
+    { "name": "bwmusic.boot.js", "url": "boot.js" }
+  ],
+  "data": [{ "name": "bwmusic.json" }, { "name": "bwmusic.load.json" }]
 }

@@ -3,9 +3,23 @@
   const lib = require("bwmusic");
   const ELLIPSIS = "...";
 
+  // Hand-off from boot.js when it auto-opened us; erased so a later launch is by hand.
+  const S = require("Storage");
+  const handoff = /** @type {{state: string, track: import("./lib").Track}|undefined} */ (
+    S.readJSON("bwmusic.load.json", 1)
+  );
+  if (handoff) S.erase("bwmusic.load.json");
+
   // App state, global so the boot hook and tests can reach it.
-  // m: model from lib.js; title: title lines last drawn; draws: redraw count.
-  const app = { m: lib.initial(), title: /** @type {string[]} */ ([]), draws: 0 };
+  // m: model from lib.js; title: title lines last drawn; draws: redraw count;
+  // auto: Auto-opened; onEvent: set below, called by boot.js for music events.
+  const app = {
+    m: handoff ? { track: handoff.track, state: handoff.state, vol: undefined } : lib.initial(),
+    title: /** @type {string[]} */ ([]),
+    draws: 0,
+    auto: !!handoff,
+    onEvent: function (/** @type {GBEvent} */ _e) {},
+  };
   global.bwmusic = app;
 
   /** Shorten `t` with "..." until it fits `w` in the current font. */
@@ -91,23 +105,12 @@
     }
   };
 
-  /** @param {GBEvent} e */
-  const onEvent = function (e) {
+  app.onEvent = function (e) {
     const m = lib.reduce(app.m, e);
     if (m === app.m) return;
     app.m = m;
     if (e.t !== "audio") draw();
   };
-
-  // Deferred like gbmusic so we wrap GB after android.boot.js: outermost wrapper.
-  setTimeout(function () {
-    const prev = global.GB;
-    global.GB = function (/** @type {GBEvent} */ e) {
-      if (e.t === "musicinfo" || e.t === "musicstate") return onEvent(e);
-      if (e.t === "audio") onEvent(e);
-      if (prev) setTimeout(prev, 0, e);
-    };
-  }, 1);
 
   /** Send a command to the phone's player; Bangle.musicControl comes from the android app. */
   const send = function (/** @type {string} */ c) {
@@ -123,6 +126,8 @@
       if (e.state) {
         hold = setTimeout(function () {
           hold = undefined;
+          // Leaving while playing is Dismissed: no auto-open until pause/stop.
+          lib.save(S, app.m.state === "play", app.m.track);
           load();
         }, LONG_MS);
       } else if (hold) {

@@ -25,8 +25,7 @@ const str = function (v) {
 exports.reduce = function (m, e) {
   if (e.t === "musicinfo") {
     const t = { track: str(e.track), artist: str(e.artist), album: str(e.album), dur: typeof e.dur === "number" ? e.dur : 0 };
-    const o = m.track;
-    if (o && o.track === t.track && o.artist === t.artist && o.album === t.album && o.dur === t.dur) return m;
+    if (exports.sameTrack(m.track, t)) return m;
     return { track: t, state: m.state, vol: m.vol };
   }
   if (e.t === "musicstate") {
@@ -47,6 +46,62 @@ exports.reduce = function (m, e) {
  */
 exports.hasTrack = function (m) {
   return !!(m.track && (m.track.track || m.track.artist));
+};
+
+/**
+ * Whether two Tracks are equal field by field (both undefined counts as equal).
+ * @param {Track|undefined} a
+ * @param {Track|undefined} b
+ */
+exports.sameTrack = function (a, b) {
+  if (!a || !b) return a === b;
+  return a.track === b.track && a.artist === b.artist && a.album === b.album && a.dur === b.dur;
+};
+
+/**
+ * Whether the boot hook should auto-open the app: playing a known Track while
+ * a clock face shows, and not Dismissed.
+ * @param {Model} m
+ * @param {boolean} dismissed
+ * @param {boolean} clock
+ */
+exports.shouldOpen = function (m, dismissed, clock) {
+  return m.state === "play" && exports.hasTrack(m) && clock && !dismissed;
+};
+
+/**
+ * Dismissed flag after observing Playback state `s`: pause or stop re-arms auto-open.
+ * @param {boolean} dismissed
+ * @param {string} s
+ */
+exports.rearm = function (dismissed, s) {
+  return s === "pause" || s === "stop" ? false : dismissed;
+};
+
+/** @typedef {{dismissed: boolean|undefined, track: Track|undefined}} Saved */
+
+/** Storage file holding a Saved; survives load() so the boot hook can read it. */
+exports.FILE = "bwmusic.json";
+
+/**
+ * Read the Saved file; a missing file means not Dismissed and no Track.
+ * @param {{readJSON: (n: string, noExceptions?: ShortBoolean) => unknown}} S Storage
+ * @returns {Saved}
+ */
+exports.load = function (S) {
+  return /** @type {Saved|undefined} */ (S.readJSON(exports.FILE, 1)) || { dismissed: false, track: undefined };
+};
+
+/**
+ * Persist the Dismissed flag and last Track, writing only on change (flash wear).
+ * @param {{readJSON: (n: string, noExceptions?: ShortBoolean) => unknown, writeJSON: (n: string, v: any) => unknown}} S Storage
+ * @param {boolean} dismissed
+ * @param {Track|undefined} track
+ */
+exports.save = function (S, dismissed, track) {
+  const f = exports.load(S);
+  if (!!f.dismissed === dismissed && exports.sameTrack(f.track, track)) return;
+  S.writeJSON(exports.FILE, { dismissed: dismissed, track: track });
 };
 
 /** @typedef {{x: number, y: number, w: number, x2: number, y2: number}} Rect */
