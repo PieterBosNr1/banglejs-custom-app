@@ -67,3 +67,34 @@ test("unknown events are ignored", () => {
     assert.equal(lib.reduce(m, e), m);
   }
 });
+
+// Bangle.js 2 appRect with widgets: 176 wide, y 24..175.
+const R = { x: 0, y: 24, w: 176, h: 152, x2: 175, y2: 175 };
+
+test("buttons row sits at the bottom of the app area", () => {
+  assert.equal(lib.buttonsTop(R), 175 - 56);
+});
+
+for (const [x, y, cmd] of [
+  [30, 150, "previous"],
+  [88, 150, "playpause"],
+  [150, 150, "next"],
+  [0, 175, "previous"],
+  [175, 175, "next"],
+  [88, 60, ""],
+  [88, 24, ""],
+]) {
+  test(`tap at ${x},${y} -> ${JSON.stringify(cmd)}`, () => {
+    assert.equal(lib.tapCommand(x, y, R), cmd);
+  });
+}
+
+for (const [lr, cmd] of [
+  [-1, "next"],
+  [1, "previous"],
+  [0, ""],
+]) {
+  test(`swipe lr=${lr} -> ${JSON.stringify(cmd)}`, () => {
+    assert.equal(lib.swipeCommand(lr), cmd);
+  });
+}

@@ -54,7 +54,7 @@
     const m = app.m;
     const w = r.w - 12;
     const cx = r.x + (r.w >> 1);
-    const by = r.y2 - 56;
+    const by = lib.buttonsTop(r);
     app.draws++;
     g.reset().setColor(g.theme.fg).setBgColor(g.theme.bg).clearRect(r.x, r.y, r.x2, r.y2);
     if (m.track && lib.hasTrack(m)) {
@@ -109,10 +109,43 @@
     };
   }, 1);
 
+  /** Send a command to the phone's player; Bangle.musicControl comes from the android app. */
+  const send = function (/** @type {string} */ c) {
+    if (c && Bangle.musicControl) Bangle.musicControl(c);
+  };
+
+  // BTN1: release before LONG_MS = playpause; held for LONG_MS = exit.
+  const LONG_MS = 1000;
+  /** @type {TimeoutId|undefined} */
+  let hold;
+  const btnWatch = setWatch(
+    function (e) {
+      if (e.state) {
+        hold = setTimeout(function () {
+          hold = undefined;
+          load();
+        }, LONG_MS);
+      } else if (hold) {
+        clearTimeout(hold);
+        hold = undefined;
+        send("playpause");
+      }
+    },
+    BTN1,
+    { repeat: true, edge: "both", debounce: 25 },
+  );
+
   Bangle.setUI({
     mode: "custom",
-    btn: function () {
-      load();
+    touch: function (_b, xy) {
+      if (xy) send(lib.tapCommand(xy.x, xy.y, Bangle.appRect));
+    },
+    swipe: function (lr) {
+      send(lib.swipeCommand(lr));
+    },
+    remove: function () {
+      clearWatch(btnWatch);
+      if (hold) clearTimeout(hold);
     },
   });
   g.clear();

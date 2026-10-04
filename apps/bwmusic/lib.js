@@ -48,3 +48,34 @@ exports.reduce = function (m, e) {
 exports.hasTrack = function (m) {
   return !!(m.track && (m.track.track || m.track.artist));
 };
+
+/** @typedef {{x: number, y: number, w: number, x2: number, y2: number}} Rect */
+
+/**
+ * Top edge of the ⏮ ⏯ ⏭ row in the app area.
+ * @param {Rect} r
+ */
+exports.buttonsTop = function (r) {
+  return r.y2 - 56;
+};
+
+/**
+ * Music command for a tap at (x, y): the row is split in thirds, with a little
+ * slack above it for fingers. "" when the tap misses the row.
+ * @param {number} x
+ * @param {number} y
+ * @param {Rect} r
+ */
+exports.tapCommand = function (x, y, r) {
+  if (y < exports.buttonsTop(r) - 8) return "";
+  const b = Math.floor(((x - r.x) * 3) / r.w);
+  return b <= 0 ? "previous" : b === 1 ? "playpause" : "next";
+};
+
+/**
+ * Music command for a horizontal swipe (-1 = left, 1 = right).
+ * @param {number} lr
+ */
+exports.swipeCommand = function (lr) {
+  return lr < 0 ? "next" : lr > 0 ? "previous" : "";
+};

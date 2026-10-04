@@ -117,11 +117,74 @@ test("redraws only when the model changes", async () => {
   assert.equal(emu.eval("bwmusic.draws"), draws);
 });
 
-test("BTN1 returns to the clock", async () => {
+// Records Bangle.musicControl commands and load() calls instead of acting on them.
+async function startStubbed() {
   await startApp();
+  emu.tx("global.sent=[];Bangle.musicControl=function(c){sent.push(c);};global.load=function(f){sent.push('load:'+f);}");
+}
+
+for (const [x, cmd] of [
+  [30, "previous"],
+  [88, "playpause"],
+  [150, "next"],
+]) {
+  test(`tapping the ${cmd} button sends ${cmd}`, async () => {
+    await startStubbed();
+    await emu.tap(x, 150);
+    assert.deepEqual(emu.errors(), []);
+    assert.deepEqual(emu.eval("sent"), [cmd]);
+  });
+}
+
+test("tapping the text area sends nothing", async () => {
+  await startStubbed();
+  await emu.tap(88, 60);
+  assert.deepEqual(emu.errors(), []);
+  assert.deepEqual(emu.eval("sent"), []);
+});
+
+test("swipe left sends next, swipe right sends previous", async () => {
+  await startStubbed();
+  await emu.swipe("left");
+  await emu.swipe("right");
+  assert.deepEqual(emu.errors(), []);
+  assert.deepEqual(emu.eval("sent"), ["next", "previous"]);
+});
+
+test("short BTN1 sends playpause", async () => {
+  await startStubbed();
   await emu.pressButton();
+  await emu.wait(1200);
+  assert.deepEqual(emu.errors(), []);
+  assert.deepEqual(emu.eval("sent"), ["playpause"]);
+});
+
+test("long BTN1 exits without sending playpause", async () => {
+  await startStubbed();
+  await emu.longPress();
+  assert.deepEqual(emu.errors(), []);
+  assert.deepEqual(emu.eval("sent"), ["load:undefined"]);
+});
+
+test("long BTN1 returns to the clock", async () => {
+  await startApp();
+  await emu.longPress();
   await emu.wait(500);
   assert.deepEqual(emu.errors(), []);
   assert.notEqual(emu.eval("global.__FILE__"), "bwmusic.app.js");
   assert.equal(emu.eval("Bangle.CLOCK"), 1);
+});
+
+test("the middle button shows pause while playing", async () => {
+  await startApp();
+  await emu.gb(INFO);
+  const r = emu.eval("Bangle.appRect");
+  const mid = { x: 66, y: r.y2 - 50, x2: 110, y2: r.y2 - 8 };
+  const bg = rgb565ToRGBA(emu.eval("g.theme.bg"));
+  const paused = countPixels(emu.pixels(), bg, mid);
+  await emu.gb(PLAY);
+  const playing = countPixels(emu.pixels(), bg, mid);
+  assert.deepEqual(emu.errors(), []);
+  assert.notEqual(playing, paused, "icon changes with Playback state");
+  emu.screenshot("app-controls-playing");
 });
